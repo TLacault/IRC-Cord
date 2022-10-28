@@ -9,17 +9,19 @@ from tcp_client import *
 class channel:
     def __init__(self, name, client):
         self.name = name
-        self.admins = []
         self.clients = [client]
+        self.admins = []
         self.promote(client)
 
 ##  Client Management  ##
-    def add_client(self, client):
+    # add a client to the channel
+    def add_client(self, client) -> bool:
         if client not in self.clients:
             self.clients.append(client)
             return True
         return False
-    def remove_client(self, client):
+    # removes a client from the channel
+    def remove_client(self, client) -> bool:
         if client in self.clients:
             self.clients.remove(client)
             if client in self.admins:
@@ -27,66 +29,81 @@ class channel:
             return True
         return False
 
-    def client_names(self):
+    # returns a list of all client's name in the channel
+    def client_names(self) -> list:
         names = []
         for client in self.clients:
             names.append(client.name)
         return names
-    def client_by_name(self, name):
+    # returns a list of all client's socket in the channel
+    def client_sockets(self) -> list:
+        sockets = []
+        for client in self.clients:
+            sockets.append(client.socket)
+        return sockets
+
+    # Search for a client by name
+    def client_by_name(self, name) -> client:
         for client in self.clients:
             if client.name == name:
                 return client
         return None
-    def client_sockets(self):
-        sockets = []
+    # Search for a client by socket
+    def client_by_socket(self, sock) -> client:
         for client in self.clients:
-            sockets.append(client.sock)
-        return sockets
-    def client_by_socket(self, sock):
-        for client in self.clients:
-            if client.sock == sock:
+            if client.socket == sock:
                 return client
         return None
 
 ##  Admin Management  ##
-    def promote(self, admin):
+    # Add a client to the admin list
+    def promote(self, admin) -> bool:
         if admin in self.clients:
             self.admins.append(admin)
             return True
         return False
-    def demote(self, admin):
+    # Removes a client from the admin list
+    def demote(self, admin) -> bool:
         if admin in self.admins:
             self.admins.remove(admin)
             return True
         return False
 
-    def admin_names(self):
+    # returns a list of all admin's name in the channel
+    def admin_names(self) -> list:
         names = []
         for admin in self.admins:
             names.append(admin.name)
         return names
-    def admin_by_name(self, name):
+    # returns a list of all admin's socket in the channel
+    def admin_sockets(self) -> list:
+        sockets = []
+        for admin in self.admins:
+            sockets.append(admin.socket)
+        return sockets
+
+    # search for an admin by name
+    def admin_by_name(self, name) -> client:
         for admin in self.admins:
             if admin.name == name:
                 return admin
         return None
-    def admin_sockets(self):
-        sockets = []
+    # search for an admin by socket
+    def admin_by_socket(self, sock) -> client:
         for admin in self.admins:
-            sockets.append(admin.sock)
-        return sockets
-    def admin_by_socket(self, sock):
-        for admin in self.admins:
-            if admin.sock == sock:
+            if admin.socket == sock:
                 return admin
         return None
 
 ##  Communication  ##
-    def msg(self, msg):
+    # send a message to all clients in the channel
+    def msg(self, msg) -> None:
         for client in self.clients:
             client.sendall(msg.encode("utf-8"))
 
-    def show(self):
+## Channel Management  ##
+    # shows all channel's properties
+    def show(self) -> None:
         print("\n<< CHANNEL >>")
         print("Name: " + self.name)
         print(">> ADMINS:")
