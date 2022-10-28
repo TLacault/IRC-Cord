@@ -7,36 +7,81 @@ import select
 from tcp_client import *
 
 class channel:
-    def __init__(self, name, admin):
+    def __init__(self, name, client):
         self.name = name
-        self.clients = [admin]
-        self.admins = [admin]
+        self.admins = []
+        self.clients = [client]
+        self.promote(client)
 
-    def c_names(self):
+##  Client Management  ##
+    def add_client(self, client):
+        if client not in self.clients:
+            self.clients.append(client)
+            return True
+        return False
+    def remove_client(self, client):
+        if client in self.clients:
+            self.clients.remove(client)
+            if client in self.admins:
+                self.admins.remove(client)
+            return True
+        return False
+
+    def client_names(self):
         names = []
         for client in self.clients:
             names.append(client.name)
         return names
-    def c_by_name(self, name):
+    def client_by_name(self, name):
         for client in self.clients:
             if client.name == name:
                 return client
         return None
-    def c_sockets(self):
+    def client_sockets(self):
         sockets = []
         for client in self.clients:
             sockets.append(client.sock)
         return sockets
-    def c_by_socket(self, sock):
+    def client_by_socket(self, sock):
         for client in self.clients:
             if client.sock == sock:
                 return client
         return None
 
-    def join(self, client):
-        self.clients.append(client)
-    def leave(self, client):
-        self.clients.remove(client)
+##  Admin Management  ##
+    def promote(self, admin):
+        if admin in self.clients:
+            self.admins.append(admin)
+            return True
+        return False
+    def demote(self, admin):
+        if admin in self.admins:
+            self.admins.remove(admin)
+            return True
+        return False
+
+    def admin_names(self):
+        names = []
+        for admin in self.admins:
+            names.append(admin.name)
+        return names
+    def admin_by_name(self, name):
+        for admin in self.admins:
+            if admin.name == name:
+                return admin
+        return None
+    def admin_sockets(self):
+        sockets = []
+        for admin in self.admins:
+            sockets.append(admin.sock)
+        return sockets
+    def admin_by_socket(self, sock):
+        for admin in self.admins:
+            if admin.sock == sock:
+                return admin
+        return None
+
+##  Communication  ##
     def msg(self, msg):
         for client in self.clients:
             client.sendall(msg.encode("utf-8"))

@@ -5,9 +5,11 @@ import sys
 import select
 
 class client:
-    def __init__(self, sock, name):
+    def __init__(self, sock, addr):
         self.sock = sock
-        self.name = name
+        self.address = str(addr[0])
+        self.port = str(addr[1])
+        self.name = self.addr + ':' + self.port
 
     def show(self):
         print("< CLIENT >")
