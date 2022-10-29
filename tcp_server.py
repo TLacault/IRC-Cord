@@ -39,8 +39,8 @@ class server:
         for channel in self.channel_by_client(client):
             channel.remove_client(client)
         if client in self.clients:
-            client.socket.close()
             self.clients.remove(client)
+            client.close()
             return True
         return False
 
@@ -142,14 +142,14 @@ class server:
                 return channel
         return None
     # search for a channel by client and return the channel
-    def channel_by_client(self, client) -> channel:
+    def channel_by_client(self, client) -> list:
         channels = []
         for channel in self.channels:
             if client in channel.clients:
                 channels.append(channel)
         return channels
     # search for a channel by admin and return the channel
-    def channel_by_admin(self, admin) -> channel:
+    def channel_by_admin(self, admin) -> list:
         channels = []
         for channel in self.channels:
             if admin in channel.admins:
@@ -160,13 +160,93 @@ class server:
     # server sends a message to every client on the server
     def broadcast(self, message) -> None:
         msg = "[server] " + message
-        for sock in self.client_sockets():
-            sock.send(msg.encode("utf-8"))
+        for client in self.clients:
+            self.msg_to(client, msg)
 
-    def quit(self, client) -> None:
-        self.remove_client(client)
-        self.broadcast(client.name + " has left the server")
-        self.log("client [" + client.name + "] disconnected")
+    # modifies the name of the client if it is not taken
+    def nick(self, client_names: list[str], data: str) -> None:
+        nick = data.replace(" ", "")
+        nick = nick.replace("\t", "")
+        nick = nick.replace("\n", "")
+        if nick not in client_names:
+            if nick.strip() != "":
+                if nick[-1] == '\n':
+                    nick = nick[:-1]
+                self.log("client [" + client.name + "] => [" + nick + "]")
+                self.msg("[server] name changed to [" + nick + "]")
+                self.name = nick
+            else:
+                self.usage_nick(client)
+        else:
+            self.msg("[server] nickname is already taken")
+
+    # removes a client from the server and every channel
+    def quit(self, server) -> None:
+        server.remove_client(self)
+        server.broadcast(self.name + " has left the server")
+        server.log("client [" + client.name + "] disconnected")
+    # shows client's details
+    def info(self, channel_names: list[str]) -> None:
+        self.msg("[client:name] " + client.name)
+        msg_channels = "[client:channels] "
+        for channel in channel_names:
+            msg_channels += channel + ", "
+        if msg_channels[-2:] == ", ":
+            msg_channels = msg_channels[:-2]
+        else:
+            msg_channels += "try /channel_help"
+        self.msg(msg_channels)
+    # shows the client's network information
+    def info_net(self) -> None:
+        self.msg("[client:socket] " + str(self.socket))
+        self.msg("[client:address] " + self.address)
+        self.msg("[client:port] " + self.port)
+
+    # sends a list of all client's name on the server
+    def names(self: object, client_names: list[str]) -> None:
+        client_names = ", ".join(client_names)
+        self.msg("[server] " + client_names)
+
+    # def usage_msg(self, client) -> None:
+    #     self.msg_to(client, "[server] usage: /msg <channel> <message>")
+    # def msg(self, client, data) -> None:
+    #     channel_name = data.split(" ")[0]
+    #     if channel_name in self.channel_names():
+    #         channel = self.channel_by_name(channel_name)
+    #         if client not in channel.clients:
+    #             try:
+    #                 message = data.split(" ", 1)[1]
+    #             except IndexError:
+    #                 self.usage_msg(client)
+    #                 return
+    #             channel.msg(client, message)
+    #         else:
+    #             # join channel
+    #             channel.add_client(client)
+    #     else:
+    #         #create channel
+
+
+    def cmd(self, data, client) -> None:
+        if data[0] == '/':
+            cmd = data[1:].split(' ')[0]
+            cmd = cmd.replace("\n", "")
+            if cmd == 'nick':
+                client.nick(data[6:])
+            elif cmd == "msg":
+                self.msg(client, data[5:])
+            elif cmd == 'names':
+                self.names(client)
+            elif cmd == 'info':
+                self.info(client)
+            elif cmd == 'info-net':
+                self.info_net(client)
+            elif cmd == 'quit':
+                self.quit(client)
+            else:
+                self.msg_to(client, "[server] invalid command\n")
+        else:
+            self.msg_to(client, "[server] invalid command\n")
 
 ##  Server Management  ##
     # show log information
