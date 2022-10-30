@@ -195,6 +195,18 @@ class Server:
             if client in channel.get_clients():
                 channels.append(channel)
         return channels
+    # returns a list of all channels name the client is in
+    def channels_name_by_client(self, client: Client) -> list[str]:
+        names = []
+        for channel in self.channels_by_client(client):
+            names.append(channel.get_name())
+        return names
+    # returns a list of all channels name the client is in a formatted in a string
+    def channels_name_by_client_formatted(self, client: Client) -> str:
+        channels = ", ".join(self.channels_name_by_client(client))
+        if channels[-2:] == ", ":
+            channels = channels[:-2]
+        return channels
     # returns a list of all channels the admin is in
     def channels_by_admin(self, admin: Client) -> list:
         channels = [Channel]
@@ -203,11 +215,10 @@ class Server:
                 channels.append(channel)
         return channels
 
-## Commands ##
+## User Commands ##
     # modifies the name of the client if it is not taken
     def nick(self, client: Client, nick: str) -> None:
-        nick = nick.replace("\t", "")
-        nick = nick.replace("\n", "")
+        nick = ''.join(nick.split())
         if nick not in self.get_all_names() + [self.name]:
             if nick.strip() != "":
                 self.log("client [" + client.get_name() + "] => [" + nick + "]")
@@ -218,56 +229,87 @@ class Server:
         else:
             client.msg("[server] nickname is already taken")
     # removes a client from the server and every channel
-    def quit(self, client: Client) -> None:
+    def quit(self, client: Client, input: str) -> None:
         self.remove_client(client)
         self.broadcast(client.get_name() + " has left the server")
         self.log("client [" + client.get_name() + "] disconnected")
         client.close()
-   # sends a list of all client's name on the server to the client
-    def names(self, client: Client) -> str:
+    # sends a list of all client's name on the server to the client
+    def names(self, client: Client, input: str) -> None:
         client.msg("[server] " + self.get_clients_name_formatted())
 
+## Channel Commands ##
+    # sends a list of all channel's name on the server to the client
+    def channel_list(self, client: Client, input: str) -> None:
+        client.msg("[channels] " + self.get_channels_name_formatted())
+    # promote to admin a client in a channel
+    def promote(self, client: Client, input: str) -> None:
+        try:
+            channel_name = input.split()[0]
+            name = ''.join(input.split()[1:])
+        except IndexError:
+            self.usage_promote(client)
+            return
+        if not channel_name or not name:
+            self.usage_promote(client)
+            return
+        channel = self.channel_by_name(channel_name)
+        if not channel:
+            client.msg("[server] channel [" + channel_name + "] does not exist")
+            return
+        if client not in channel.get_admins():
+            client.msg("[server] you are not an admin of [" + channel_name + "]")
+            return
+        admin = self.client_by_name(name)
+        if not admin:
+            client.msg("[server] client [" + name + "] does not exist")
+            return
+        if admin not in channel.get_clients():
+            client.msg("[server] client [" + name + "] is not member of [" + channel_name + "]")
+            return
+        if admin in channel.get_admins():
+            client.msg("[server] client [" + name + "] is already an admin")
+            return
+        channel.add_admin(admin)
+        channel.broadcast("[" + channel.get_name() + "] client [" + name + "] promoted to admin by [" + client.get_name() + "]")
+    def demote(self, client: Client, input: str) -> None:
+        pass
+    def kick(self, client: Client, input: str) -> None:
+        pass
+    def kick(self, client: Client, input: str) -> None:
+        pass
+    def ban(self, client: Client, input: str) -> None:
+        pass
+    def unban(self, client: Client, input: str) -> None:
+        pass
+    def mute(self, client: Client, input: str) -> None:
+        pass
+    def unmute(self, client: Client, input: str) -> None:
+        pass
+    def create(self, client: Client, input: str) -> None:
+        pass
+    def delete(self, client: Client, input: str) -> None:
+        pass
+    def join(self, client: Client, input: str) -> None:
+        pass
+    def leave(self, client: Client, input: str) -> None:
+        pass
 
-# def KILL(l, s, sock, dict, line):
-#     nick = line.split(" ", 2)[1]
-#     try:
-#         argument = line.split(" ", 2)[2]
-#     except:
-#         INVALID(sock)
-#         return
-#     msg = nick + " has been kicked by " + dict[sock] + " : " + argument
-#     for key in dict:
-#         if dict[key] == nick and key != s and key != sock:
-#             print("client [", dict[sock], "] ", "kicked [", dict[key], "]", sep='')
-#             MSG(msg, l, s, s, dict)
-#             LEAVE(key, l, s, dict)
-#             return
-#     msg = nick + " not found\n"
-#     sock.sendall(msg.encode("utf-8"))
-
-
+## Input Handling ##
     def cmd(self, input: str, client: Client) -> None:
-        if input[0] == '/':
-            cmd = input[1:].split(' ')[0]
-            cmd = cmd.replace("\n", "")
-            if cmd == 'nick':
-                self.nick(client, input[6:])
-            elif cmd == "msg":
-                self.msg(client, input[5:])
-            elif cmd == 'names':
-                self.names(client)
-            elif cmd == 'info':
-                self.client_info(client)
-            elif cmd == 'info-net':
-                self.client_info_net(client)
-            elif cmd == 'info-server':
-                self.server_info(client)
-            elif cmd == 'quit':
-                self.quit(client)
+        commands = {'nick': self.nick, 'msg':self.msg, 'names':self.names, 'info':self.client_info, 'info-network':self.client_info_net,
+                    'info-server':self.server_info, 'info-channel': self.channel_info, 'quit': self.quit, 'channel-list': self.channel_list,
+                    'promote': self.promote, 'demote':self.demote, 'kick':self.kick, 'ban':self.ban, 'unban':self.unban, 'mute':self.mute,
+                    'unmute':self.unmute, 'join': self.join, 'leave': self.leave, 'create': self.create, 'delete': self.delete}
+
+        if input[0] == "/":
+            cmd = input[1:].split()[0]
+            if cmd in commands:
+                commands[cmd](client, ' '.join(input[(len(cmd)+1):].split()))
             else:
-                client.msg("[server] invalid command\n")
+                client.msg("[server] invalid command")
         else:
-            client.msg("[server] invalid command\n")
+            client.msg("[server] invalid command")
 
 ## Command Usage ##
     # shows usage for /nick command
@@ -277,29 +319,43 @@ class Server:
     # shows usage for /msg command
     def usage_msg(self, client: Client) -> None:
         client.msg("[server] usage: /msg <channel> <message>")
+    # shows usage for /info command
+    def usage_info(self, client: Client) -> None:
+        client.msg("[server] usage: /info")
+        client.msg("[server] usage: /info-net               or   /info-network")
+        client.msg("[server] usage: /info-server            or   /info-server")
+        client.msg("[server] usage: /info-chan <channel>    or   /info-channel <channel>")
+    # shows usage for /channel-list command
+    def usage_channel(self, client: Client) -> None:
+        client.msg("[server] usage: /channel-list")
+        client.msg("[server] usage: /create <channel>")
+        client.msg("[server] usage: /join <channel>")
+        client.msg("[server] usage: /leave <channel>")
+        client.msg("[server] You have to be an admin of the channel to use the following commands:")
+        client.msg("[server] usage: /promote <channel> <client>")
+        client.msg("[server] usage: /demote <channel> <client>")
+        client.msg("[server] usage: /kick <channel> <client>")
+    # shows usage for /promote command
+    def usage_promote(self, client: Client) -> None:
+        client.msg("[server] usage: /promote <channel> <client>")
 
 ##  Communication  ##
-    # sends a message to all clients on a channel #TO DO
+    # sends a message to all clients on a channel
     def msg(self, client: Client, data: str) -> None:
-        channel_name = data.split(" ")[0]
+        channel_name = data.split()[0]
+        message = " ".join(data.split()[1:])
+        if not message:
+            self.usage_msg(client)
+            return
         if channel_name in self.get_channels_name():
-            current_channel = self.channel_by_name(channel_name)
-            if client not in current_channel.get_clients():
-                current_channel.add_client(client)
+            channel = self.channel_by_name(channel_name)
+            if client not in channel.get_clients():
+                channel.add_client(client)
         else:
             self.add_channel_create(channel_name, client)
-            current_channel = self.channel_by_name(channel_name)
-        try:
-            message = data.split(" ", 1)[1]
-        except IndexError:
-            self.usage_msg(client)
-            return
-        message = message.strip()
-        if message == "":
-            self.usage_msg(client)
-            return
-        formatted_message = "[" + current_channel.get_name() + "] [" + client.get_name() + "] " + message
-        current_channel.msg_clients(formatted_message)
+            channel = self.channel_by_name(channel_name)
+        message = "[" + channel.get_name() + "] [" + client.get_name() + "] " + message
+        channel.broadcast(message)
     # server sends a message to every client on the server
     def broadcast(self, message: str) -> None:
         msg = "[server] " + message
@@ -311,23 +367,32 @@ class Server:
 
 ## information ##
      # shows client's details
-    def client_info(self, client: Client) -> None:
+    def client_info(self, client: Client, input: str) -> None:
         client.msg("[client:name] " + client.get_name())
-        msg_channels = "[client:channels] " + ", ".join(self.channels_by_client(client))
-        if msg_channels[-2:] == ", ":
-            msg_channels = msg_channels[:-2]
-        else:
-            msg_channels += "try /channel-help"
+        msg_channels = "[client:channels] " + self.channels_name_by_client_formatted(client)
         client.msg(msg_channels)
     # shows the client's network information
-    def client_info_net(self, client: Client) -> None:
+    def client_info_net(self, client: Client, input: str) -> None:
         client.msg("[client:socket] " + str(client.get_socket()))
         client.msg("[client:address] " + client.get_address())
         client.msg("[client:port] " + str(client.get_port()))
     # shows the server's information
-    def server_info(self, client: Client) -> None:
+    def server_info(self, client: Client, input: str) -> None:
         client.msg("[server:name] " + self.name)
         client.msg("[server:host] " + self.get_host_formatted())
         client.msg("[server:port] " + str(self.port))
         client.msg("[server:clients] " + self.get_clients_name_formatted())
         client.msg("[server:channels] " + self.get_channels_name_formatted())
+    # shows a channel's information
+    def channel_info(self, client: Client, channel_name: str) -> None:
+        channel_name = channel_name.strip()
+        if channel_name == "":
+            self.usage_info(client)
+            return
+        if channel_name in self.get_channels_name():
+            channel = self.channel_by_name(channel_name)
+            client.msg("[channel:name] " + channel.get_name())
+            client.msg("[channel:owner] " + channel.get_owner().get_name())
+            client.msg("[channel:admins] " + channel.get_admins_name_formatted())
+            client.msg("[channel:clients] " + channel.get_clients_name_formatted())
+            client.msg("[channel:capacity] " + str(channel.get_capacity()))

@@ -86,6 +86,7 @@ class Client:
 ## Communications ##
     # sends a message to the client
     def msg(self, message: str) -> None:
+        message = ' '.join(message.split())
         if message[-1] != '\n':
             message += '\n'
         self.socket.send(message.encode("utf-8"))

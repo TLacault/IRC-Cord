@@ -33,6 +33,12 @@ class Channel:
         for client in self.clients:
             names.append(client.get_name())
         return names
+    # returns a list of all client's name in the channel formatted in a string
+    def get_clients_name_formatted(self) -> str:
+        names = ", ".join(self.get_clients_name())
+        if names[-2:] == ", ":
+            names = names[:-2]
+        return names
     # returns a list of all client's socket in the channel
     def get_clients_socket(self) -> list[object]:
         sockets = []
@@ -51,6 +57,12 @@ class Channel:
         for admin in self.admins:
             sockets.append(admin.get_socket())
         return sockets
+    # returns a list of all client's name on the server formatted in a string
+    def get_admins_name_formatted(self) -> str:
+        names = ", ".join(self.get_admins_name())
+        if names[-2:] == ", ":
+            names = names[:-2]
+        return names
 
 ## Setters ##
     # sets the channel's name
@@ -127,9 +139,7 @@ class Channel:
 
 ##  Communication  ##
     # send a message to all clients in the channel
-    def msg_clients(self, message: str) -> None:
-        if message[-1] != '\n':
-            message += '\n'
+    def broadcast(self, message: str) -> None:
         for client in self.clients:
             client.msg(message)
     # send a message to all admins in the channel

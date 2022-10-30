@@ -23,7 +23,7 @@ def irc_chat(host = "", port = 7777):
                 input = socket.recv(1024).decode("utf-8")
                 client = server.client_by_socket(socket)
                 if not input or input == "\n" or input == "":
-                    server.quit(client)
+                    server.quit(client, input)
                 else:
                     server.cmd(input, client)
 
