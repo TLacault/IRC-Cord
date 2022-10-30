@@ -1,11 +1,8 @@
 #!/usr/bin/env python3
-from ctypes import addressof
-import socket
-import sys
-import select
+import socket as Socket
 
-class client:
-    def __init__(self: object, socket: object, address: object) -> None:
+class Client:
+    def __init__(self, socket: Socket, address: object) -> None:
         self.socket = socket
         self.address = str(address[0])
         self.port = str(address[1])
@@ -17,7 +14,7 @@ class client:
     def get_name(self) -> str:
         return self.name
     # returns the client's socket
-    def get_socket(self) -> object:
+    def get_socket(self) -> Socket:
         return self.socket
     # returns the client's address
     def get_address(self) -> str:
@@ -26,7 +23,7 @@ class client:
     def get_port(self) -> str:
         return self.port
     # returns a list of all client's friends
-    def get_friends(self) -> list:
+    def get_friends(self) -> list[object]:
         return self.friends
 
 ## Setters ##
@@ -34,8 +31,8 @@ class client:
     def set_name(self, name: str) -> None:
         self.name = name
     # sets the client's socket
-    def set_socket(self, sock: object) -> None:
-        self.socket = sock
+    def set_socket(self, socket: Socket) -> None:
+        self.socket = socket
     # sets the client's address
     def set_address(self, addr: str) -> None:
         self.address = addr
@@ -60,16 +57,31 @@ class client:
             return True
         return False
 
+## Search ##
+    # search for a friend by name
+    def friend_by_name(self, name: str) -> object:
+        for friend in self.friends:
+            if friend.get_name() == name:
+                return friend
+        return None
+    # search for a friend by socket
+    def friend_by_socket(self, socket: Socket) -> object:
+        for friend in self.friends:
+            if friend.get_socket() == socket:
+                return friend
+        return None
+    # returns a list all common friends with another client
+    def common_friends(self, client: object) -> list[object]:
+        common = []
+        for friend in self.friends:
+            if friend in client.get_friends():
+                common.append(friend)
+        return common
+
 ##  Client Management  ##
     # close the client's connection
     def close(self) -> None:
         self.socket.close()
-
-## Command Usage ##
-    # shows usage for /nick command
-    def usage_nick(self) -> None:
-        self.msg("[server] usage: /nick <new_name>")
-        self.msg("[server] <new_name> must be unique, can't be empty, can't contain spaces or tabs")
 
 ## Communications ##
     # sends a message to the client
@@ -78,5 +90,5 @@ class client:
             message += '\n'
         self.socket.send(message.encode("utf-8"))
     # show log information
-    def log(self, message) -> None:
+    def log(self, message: str) -> None:
         print(message)
