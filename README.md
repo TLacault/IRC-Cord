@@ -1,2 +1,2 @@
-# IRC_Chat
-IRC Chat python implementation, multi-client TCP server
+# IRC_Cord
+IRC version of discord, python implementation, multi-client TCP server
