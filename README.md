@@ -1,4 +1,4 @@
-# IRC-Cord - Discord IRC Chat
+# IRC-Cord - Discord IRC Chat 💻💬
 
 [![](img/preview.png)](https://github.com/TLacault/IRC-Cord)
 
